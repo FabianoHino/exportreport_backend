@@ -7,9 +7,9 @@ import io
 import uuid
 import json
 import reportlab
-from reportlab.platypus import SimpleDocTemplate, Image, Table, TableStyle, Spacer
+from reportlab.platypus import SimpleDocTemplate, Image, Table, TableStyle, Spacer, Paragraph
 from reportlab.lib.pagesizes import letter,A4
-from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet, TA_CENTER
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
 
@@ -19,17 +19,22 @@ from data_access import Data_Access
 
 class Report:
 
-    def __init__(self,web_map_as_json,layer):
+    def __init__(self,web_map_as_json,layer, title, subtitle):
         try:
             arcpy.AddMessage("INIT REPORT")
+            self.title = title
+            self.subtitle = subtitle
             self.report_elements = []
-            layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
+            self.__build_title_subtitle()
+            layer_json = layer.replace('\\n','')
+            #layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
             self.layer_obj = json.loads(layer_json)
 
             self.utils = Utils()
             self.configuration = self.utils.get_configuration()
             self.data_access = Data_Access(self.configuration,self.layer_obj)
             self.web_map_as_json = web_map_as_json.replace('\\n','')
+          
 
         except Exception as ex:
             print(ex)
@@ -154,8 +159,8 @@ class Report:
     
     def __title_table_style(self):
          return TableStyle([
-            ('BACKGROUND', (0,0),(4,0), colors.Color(0.7,0.7,0.7)),
-            ('TEXTCOLOR',(0,0),(-1,0), colors.black),
+            ('BACKGROUND', (0,0),(4,0), "#00AAFF"),
+            ('TEXTCOLOR',(0,0),(-1,0), colors.white),
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
             ('FONTSIZE', (0,0), (-1,0), 11),
             ('BOTTOMPADDING', (0,0), (-1,0), 12),
@@ -165,13 +170,22 @@ class Report:
     def __table_style(self, lines):
         
         return TableStyle([
-            ('BACKGROUND', (0,0),(0,lines), colors.Color(0.9,0.9,0.9)),
-            ('TEXTCOLOR',(0,0),(-1,0), colors.black),
+            ('BACKGROUND', (0,0),(0,lines), '#00AAFF'),
+            ('TEXTCOLOR',(0,0),(0,-1), colors.white),
             ('ALIGN',(0,0),(-1,-1),'LEFT'),
             ('FONTSIZE', (0,0), (-1,0), 10),
             ('LINEABOVE', (0,0), (-1,-1), 0.25, colors.white),
             # ('BOTTOMPADDING', (0,0), (-1,0), 12)
         ])
+
+    def __build_title_subtitle(self):
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(name='Center1', alignment=TA_CENTER,fontSize=18))
+            styles.add(ParagraphStyle(name='Center2', alignment=TA_CENTER,fontSize=13))
+            self.report_elements.append(Paragraph(self.title, styles['Center1']))
+            self.__set_spacer(0.1)
+            self.report_elements.append(Paragraph(self.subtitle, styles['Center2']))
+            self.__set_spacer(0.2)
 
     def __table_style_images(self):
         return TableStyle([
@@ -197,12 +211,13 @@ class Report:
             arcpy.AddMessage("SimpleDocTemplate")
             uniqueID = str(uuid.uuid1())
             path_report = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}.pdf'.format(uniqueID))
+            #path_report = "report.pdf"
             arcpy.AddMessage(path_report)
             doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=5, allowSplitting=1)
             doc.build(self.report_elements)
             
             arcpy.AddMessage("build completed!")
-            arcpy.SetParameter(2, path_report)
+            arcpy.SetParameter(4, path_report)
             
             self.utils.remove_all_files(self.configuration['output_attach'],True)
             self.utils.remove_all_files(self.configuration['output_webmap_img'],False)

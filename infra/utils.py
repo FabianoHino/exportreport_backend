@@ -32,7 +32,7 @@ class Utils:
         if value_where is None:
             url = ''.join(layer_obj['layer']['url']).encode('utf-8')
             
-            if type(layer_obj['layer']['codigo_imovel'] is int):
+            if type(layer_obj['layer']['codigo_imovel']) is int:
                 where = "{}={}".format(layer_obj['layer']['field_search'],layer_obj['layer']['codigo_imovel'])
             else:
                 where = "{}='{}'".format(layer_obj['layer']['field_search'],layer_obj['layer']['codigo_imovel']) 
@@ -44,9 +44,9 @@ class Utils:
                 where = "{}='{}'".format(layer_obj['dest'],value_where)
         
         if len(token) == 0:
-            url = "{}/query?where={}&outFields={}&f=pjson".format(url,where,"*")
+            url = "{}/query?where={}&outFields={}&f=json".format(url,where,"*")
         else:
-            url = "{}/query?where={}&outFields={}&token={}&f=pjson".format(url,where,"*",token)
+            url = "{}/query?where={}&outFields={}&token={}&f=json".format(url,where,"*",token)
             
         return url
 
