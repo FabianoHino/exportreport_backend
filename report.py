@@ -16,6 +16,7 @@ from reportlab.lib import colors
 from infra.utils import Utils
 from data_access import Data_Access
 
+from PyPDF2 import PdfFileMerger
 
 class Report:
 
@@ -34,7 +35,7 @@ class Report:
             self.configuration = self.utils.get_configuration()
             self.data_access = Data_Access(self.configuration,self.layer_obj)
             self.web_map_as_json = web_map_as_json.replace('\\n','')
-          
+            self.web_map_as_pdf = ""
 
         except Exception as ex:
             print(ex)
@@ -60,14 +61,12 @@ class Report:
         mxd = result.mapDocument
         df = arcpy.mapping.ListDataFrames(mxd, 'Webmap')[0]
 
-        output = 'webmap_{}.jpg'.format(str(uuid.uuid1()))
-        output_file = os.path.join(path_webmap_img, output)
-        arcpy.mapping.ExportToJPEG(mxd, output_file)
+        output = 'webmap_{}.pdf'.format(str(uuid.uuid1()))
 
-        img = Image(output_file)
-        self.report_elements.append(img)
+        self.web_map_as_pdf = os.path.join(path_webmap_img, output)
+        arcpy.mapping.ExportToPDF(mxd, self.web_map_as_pdf, df_export_width = 400,df_export_height =680, resolution = 150)
+
         del mxd
-        del output_file
 
     def __build_table(self):
         arcpy.AddMessage("BUILD TABLE")
@@ -211,19 +210,26 @@ class Report:
             arcpy.AddMessage("SimpleDocTemplate")
             uniqueID = str(uuid.uuid1())
             path_report = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}.pdf'.format(uniqueID))
+            path_report_merged = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}_merged.pdf'.format(uniqueID))
             #path_report = "report.pdf"
             arcpy.AddMessage(path_report)
             doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=5, allowSplitting=1)
             doc.build(self.report_elements)
+
+            merger = PdfFileMerger()
+            merger.append(path_report)
+            merger.append(self.web_map_as_pdf)
+
+            merger.write(path_report_merged)       
+            merger.close()
             
             arcpy.AddMessage("build completed!")
-            arcpy.SetParameter(4, path_report)
+            arcpy.SetParameter(4, path_report_merged)
             
             self.utils.remove_all_files(self.configuration['output_attach'],True)
             self.utils.remove_all_files(self.configuration['output_webmap_img'],False)
         except Exception as ex:
             print(ex)
             arcpy.AddMessage(ex.message)
-        
         
 
