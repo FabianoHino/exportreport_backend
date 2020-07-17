@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import yaml
+import json
 import os
 import shutil
 import glob
@@ -9,10 +9,15 @@ class Utils:
     def __init__(self):
         self.this_folder = os.path.dirname(os.path.abspath(__file__))
 
-    def get_configuration(self):
-        with open(os.path.join(self.this_folder,'configuration.yml'), "r") as ymlfile:
-            cfg = yaml.load(ymlfile)       
-        return cfg
+        def get_configuration(self):
+            try:
+                with open(os.path.join(self.this_folder,'configuration.json'), "rb") as jsonFile:
+
+                    cfg = json.load(jsonFile)
+                    
+                return cfg
+            except Exception as ex:
+                arcpy.AddMessage(ex)
 
 
     def is_image(self,path_img):
