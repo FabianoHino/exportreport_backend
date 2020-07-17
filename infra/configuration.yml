@@ -1,5 +1,0 @@
-template_mxd: 'D:\applications\py_report\template\template.mxd'
-output_webmap_img: 'D:\applications\py_report\webmap_img\'
-output_report: 'D:\applications\py_report\results\'
-host_report: 'https://p118cbarbosa.img.com.br/reportimoveisresults/'
-output_attach: 'D:\applications\py_report\attachments\'

@@ -13,15 +13,17 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet, TA_CENTER
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
 
-from infra.utils import Utils
+from utils import Utils
 from data_access import Data_Access
 
 from PyPDF2 import PdfFileMerger
 
 class Report:
 
-    def __init__(self,web_map_as_json,layer, title, subtitle):
+        
+    def __init__(self,web_map_as_json,layer, title, subtitle, templateMXD):
         try:
+            
             arcpy.AddMessage("INIT REPORT")
             self.title = title
             self.subtitle = subtitle
@@ -30,10 +32,10 @@ class Report:
             layer_json = layer.replace('\\n','')
             #layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
             self.layer_obj = json.loads(layer_json)
-
+            self.templateMXD = templateMXD
+            
             self.utils = Utils()
-            self.configuration = self.utils.get_configuration()
-            self.data_access = Data_Access(self.configuration,self.layer_obj)
+            self.data_access = Data_Access(self.layer_obj)
             self.web_map_as_json = web_map_as_json.replace('\\n','')
             self.web_map_as_pdf = ""
 
@@ -47,15 +49,15 @@ class Report:
             self.__build_table()
             self.__build_relationship_table()
             self.__build_web_map()
-            self.__build_pdf("report.pdf")
+            self.__build_pdf()
         except Exception as ex:
             print(ex)
             arcpy.AddMessage(ex)
 
     def __build_web_map(self):
         arcpy.AddMessage("BUILD WEB MAP")
-        template_mxd = self.configuration['template_mxd']
-        path_webmap_img = self.configuration['output_webmap_img']
+        template_mxd = self.templateMXD
+        path_webmap_img = arcpy.env.scratchWorkspace
 
         result = arcpy.mapping.ConvertWebMapToMapDocument(self.web_map_as_json, template_mxd)
         mxd = result.mapDocument
@@ -135,7 +137,7 @@ class Report:
             for uuid in uuids:
                 files_attach = self.data_access.get_attachments_in_folder(uuid)
                 for file in files_attach:
-                    path_img = '{}{}\\{}'.format(self.configuration['output_attach'],uuid,file)
+                    path_img = '{}{}\\{}'.format(arcpy.env.scratchWorkspace,uuid,file)
                     img_attach = Image( path_img)
                     img_attach.width=0.3*inch
                     img_attach.height=0.3*inch
@@ -205,7 +207,7 @@ class Report:
         self.report_elements.append(table_img)
 
 
-    def __build_pdf(self,file_name):
+    def __build_pdf(self):
         try:
             arcpy.AddMessage("SimpleDocTemplate")
             uniqueID = str(uuid.uuid1())
@@ -225,9 +227,7 @@ class Report:
             
             arcpy.AddMessage("build completed!")
             arcpy.SetParameter(4, path_report_merged)
-            
-            self.utils.remove_all_files(self.configuration['output_attach'],True)
-            self.utils.remove_all_files(self.configuration['output_webmap_img'],False)
+
         except Exception as ex:
             print(ex)
             arcpy.AddMessage(ex.message)
