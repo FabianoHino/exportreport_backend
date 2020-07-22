@@ -6,7 +6,8 @@ import sys, os
 sys.path.append(os.path.join(arcpy.env.packageWorkspace,u'..\\cd\\exportreportgp\\'))
 from report import Report
 class Main:
-    
+
+    deplibs = "libs/"
     reportFile = "report.py"
     service_request = "service_request.py"
     data_access = "data_access.py"

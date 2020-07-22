@@ -9,29 +9,26 @@ import shutil
 class Service_Request:
     def get(self,url,stream):
         try:
-            
-            if stream is None:
-                
-                reqLib = Request(url)
-                host = reqLib.get_host()
 
-                url_aux = url.lower()
-                reqLib_aux = Request(url_aux)
-                host_oux = reqLib.get_selector()
-                if reqLib_aux.get_selector().find('mapserver') == -1:
-                    idx = reqLib_aux.get_selector().index("featureserver")
-                else:
-                    idx = reqLib_aux.get_selector().index("mapserver")
-                url_params = urllib2.quote(reqLib.get_selector()[0:idx])
-                get_url = '{}{}'.format(url_params,reqLib.get_selector()[idx:len(reqLib.get_selector())])
-                
-                conn = httplib.HTTPSConnection(host,context=ssl._create_unverified_context())
-                arcpy.AddMessage(get_url)
-                
-                conn.request("GET",get_url)
-                response = conn.getresponse()
+            reqLib = Request(url)
+            host = reqLib.get_host()
+
+            url_aux = url.lower()
+            reqLib_aux = Request(url_aux)
+            host_oux = reqLib.get_selector()
+            if reqLib_aux.get_selector().find('mapserver') == -1:
+                idx = reqLib_aux.get_selector().index("featureserver")
             else:
-                response = requests.get(url,stream = True)
+                idx = reqLib_aux.get_selector().index("mapserver")
+            url_params = urllib2.quote(reqLib.get_selector()[0:idx])
+            get_url = '{}{}'.format(url_params,reqLib.get_selector()[idx:len(reqLib.get_selector())])
+            
+            conn = httplib.HTTPSConnection(host,context=ssl._create_unverified_context())
+            arcpy.AddMessage(get_url)
+            
+            conn.request("GET",get_url)
+            response = conn.getresponse()
+
             return response
         except Exception as ex:
             print(ex.message)

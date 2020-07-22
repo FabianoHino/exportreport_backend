@@ -73,7 +73,7 @@ class Report:
     def __build_table(self):
         arcpy.AddMessage("BUILD TABLE")
         data = self.data_access.get_data()
-        arcpy.AddMessage("data")
+        arcpy.AddMessage("data ")
         data_table = data['data_table']
         arcpy.AddMessage("data_table")
         title_table = self.layer_obj['layer']['title']
@@ -139,10 +139,11 @@ class Report:
                 for file in files_attach:
                     path_img = '{}{}\\{}'.format(arcpy.env.scratchWorkspace,uuid,file)
                     img_attach = Image( path_img)
-                    img_attach.width=0.3*inch
+                    '''img_attach.width=0.3*inch
                     img_attach.height=0.3*inch
                     img_attach.drawWidth=3*inch
-                    img_attach.drawHeight=3*inch
+                    img_attach.drawHeight=3*inch'''
+                    img_attach._restrictSize(3*inch, 3*inch)
                     file_img.append(img_attach)  
 
                     if len(file_img) == 2:
@@ -213,9 +214,10 @@ class Report:
             uniqueID = str(uuid.uuid1())
             path_report = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}.pdf'.format(uniqueID))
             path_report_merged = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}_merged.pdf'.format(uniqueID))
-            #path_report = "report.pdf"
+
             arcpy.AddMessage(path_report)
             doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=5, allowSplitting=1)
+
             doc.build(self.report_elements)
 
             merger = PdfFileMerger()

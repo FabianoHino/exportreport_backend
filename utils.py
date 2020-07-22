@@ -4,6 +4,7 @@ import os, json
 import shutil
 import glob
 import arcpy
+import datetime
 
 class Utils:
     def __init__(self):
@@ -59,6 +60,16 @@ class Utils:
             url = "{}/query?where={}&outFields={}&token={}&f=pjson".format(url,where,"*",token)
             
         return url
+
+    
+    def date_format(self, timestamp):
+        if timestamp is None:
+            return None        
+        
+        arcpy.AddMessage(timestamp)
+        date = datetime.datetime.fromtimestamp(timestamp/1000)
+
+        return datetime.datetime.strftime(date,"%d/%m/%Y")
 
     def get_out_fields(self, fields):
         out_fields = [fd['name'] for fd in fields]
