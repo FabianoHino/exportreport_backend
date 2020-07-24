@@ -12,6 +12,7 @@ from reportlab.lib.pagesizes import letter,A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet, TA_CENTER
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
+from reportlab.pdfgen import canvas
 
 from utils import Utils
 from data_access import Data_Access
@@ -21,13 +22,14 @@ from PyPDF2 import PdfFileMerger
 class Report:
 
         
-    def __init__(self,web_map_as_json,layer, title, subtitle, templateMXD):
+    def __init__(self,web_map_as_json,layer, title, subtitle, templateMXD, engie_logo):
         try:
             
             arcpy.AddMessage("INIT REPORT")
             self.title = title
             self.subtitle = subtitle
             self.report_elements = []
+            self.engie_logo = engie_logo
             self.__build_title_subtitle()
             layer_json = layer.replace('\\n','')
             #layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
@@ -173,6 +175,7 @@ class Report:
         
         return TableStyle([
             ('BACKGROUND', (0,0),(0,lines), '#00AAFF'),
+            ('BACKGROUND', (1,0),(1,-1), '#e7f7ff'),
             ('TEXTCOLOR',(0,0),(0,-1), colors.white),
             ('ALIGN',(0,0),(-1,-1),'LEFT'),
             ('FONTSIZE', (0,0), (-1,0), 10),
@@ -180,14 +183,29 @@ class Report:
             # ('BOTTOMPADDING', (0,0), (-1,0), 12)
         ])
 
+
     def __build_title_subtitle(self):
-            styles = getSampleStyleSheet()
-            styles.add(ParagraphStyle(name='Center1', alignment=TA_CENTER,fontSize=18))
-            styles.add(ParagraphStyle(name='Center2', alignment=TA_CENTER,fontSize=13))
-            self.report_elements.append(Paragraph(self.title, styles['Center1']))
-            self.__set_spacer(0.1)
-            self.report_elements.append(Paragraph(self.subtitle, styles['Center2']))
-            self.__set_spacer(0.2)
+       
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Center1', alignment=TA_CENTER))
+        title_header = '<font size="18">'+self.title + '</font><br /><br />\n<font size="13">' + self.subtitle + '</font>'
+        img = Image(self.engie_logo,1.8 * inch, 1.3 * inch)
+        table_header = Table([[img,Paragraph(title_header, styles['Center1'])]],colWidths=[1 * cm,19 * cm],rowHeights =[2.5* cm])
+        style = self.__build_style_header()    
+        table_header.setStyle(style)
+            
+        self.report_elements.append(table_header)
+        self.__set_spacer(0.2)
+            
+    def __build_style_header(self):
+        return TableStyle([
+            ('TEXTCOLOR',(0,0),(0,-1), colors.black),
+            ('VALIGN',(1,0),(-1,-1),'MIDDLE'),
+            ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+            ('ALIGN',(0,0),(-1,-1),'LEFT'),
+            ('BOX', (0,0), (-1,-1),0.25,colors.gray),
+            ('BOTTOMPADDING', (0,0), (-1,0), 10)
+        ])
 
     def __table_style_images(self):
         return TableStyle([
@@ -207,6 +225,17 @@ class Report:
         table_img.setStyle(style)
         self.report_elements.append(table_img)
 
+    @staticmethod
+    def _header_footer(canvas,doc):
+        canvas.saveState()
+        styles = getSampleStyleSheet()
+        # Footer
+        footer = Paragraph('', styles['Normal'])
+        w, h = footer.wrap(doc.width, doc.bottomMargin)
+        footer.drawOn(canvas, doc.leftMargin, h)
+
+        # Release the canvas
+        canvas.restoreState()
 
     def __build_pdf(self):
         try:
@@ -219,14 +248,24 @@ class Report:
             doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=5, allowSplitting=1)
 
             doc.build(self.report_elements)
-
+            arcpy.AddMessage("INIT MERGE")
+            #c = canvas.Canvas(path_report)
+            
+            #c.showPage()
+            #c.showPage()
+            
+            #arcpy.AddMessage(c.getPageNumber())
             merger = PdfFileMerger()
             merger.append(path_report)
             merger.append(self.web_map_as_pdf)
 
+            arcpy.AddMessage("WRITE MERGE")
+            
             merger.write(path_report_merged)       
             merger.close()
-            
+            arcpy.AddMessage("CLOSE MERGE")
+           
+
             arcpy.AddMessage("build completed!")
             arcpy.SetParameter(4, path_report_merged)
 

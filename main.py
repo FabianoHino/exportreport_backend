@@ -10,6 +10,7 @@ class Main:
     deplibs = "libs/"
     reportFile = "report.py"
     service_request = "service_request.py"
+    engie_logo = "engie_logo.png"
     data_access = "data_access.py"
     utils = "utils.py"
     init = "__init__.py"
@@ -21,7 +22,7 @@ class Main:
     subtitle = arcpy.GetParameterAsText(3)
     
     def __init__(self):
-        report = Report(self.webmap_as_json.replace('\n',""),self.layer.replace('\n',''), self.title, self.subtitle, self.template)
+        report = Report(self.webmap_as_json.replace('\n',""),self.layer.replace('\n',''), self.title, self.subtitle, self.template, self.engie_logo)
         report.generate()
 
 
