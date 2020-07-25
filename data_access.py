@@ -200,7 +200,7 @@ class Data_Access:
             arcpy.AddMessage(ex)
     
     def get_domain_field(self, field_name):
-        fields_domain = [fd for fd in self.definition_fields if fd['domain'] != None and fd['name'] == field_name]
+        fields_domain = [fd for fd in self.definition_fields if 'domain' in fd and fd['domain'] != None and fd['name'] == field_name]
         return fields_domain
 
 
