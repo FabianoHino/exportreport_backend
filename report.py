@@ -12,12 +12,15 @@ from reportlab.lib.pagesizes import letter,A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet, TA_CENTER
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
-from reportlab.pdfgen import canvas
+from reportlab.pdfgen.canvas import Canvas
 
 from utils import Utils
 from data_access import Data_Access
 
 from PyPDF2 import PdfFileMerger
+from pdfrw import PdfReader
+from pdfrw.toreportlab import makerl
+from pdfrw.buildxobj import pagexobj
 
 class Report:
 
@@ -245,16 +248,11 @@ class Report:
             path_report_merged = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}_merged.pdf'.format(uniqueID))
 
             arcpy.AddMessage(path_report)
-            doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=5, allowSplitting=1)
+            doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=20, allowSplitting=1)
 
             doc.build(self.report_elements)
             arcpy.AddMessage("INIT MERGE")
-            #c = canvas.Canvas(path_report)
-            
-            #c.showPage()
-            #c.showPage()
-            
-            #arcpy.AddMessage(c.getPageNumber())
+          
             merger = PdfFileMerger()
             merger.append(path_report)
             merger.append(self.web_map_as_pdf)
@@ -264,7 +262,7 @@ class Report:
             merger.write(path_report_merged)       
             merger.close()
             arcpy.AddMessage("CLOSE MERGE")
-           
+            self.__set_page_number(path_report_merged)
 
             arcpy.AddMessage("build completed!")
             arcpy.SetParameter(4, path_report_merged)
@@ -272,5 +270,35 @@ class Report:
         except Exception as ex:
             print(ex)
             arcpy.AddMessage(ex.message)
-        
+
+    def __set_page_number(self, path_report):
+        try:
+            reader = PdfReader(path_report)
+            pages = [pagexobj(p) for p in reader.pages]
+                
+
+            canvas = Canvas(path_report)
+
+            for page_num, page in enumerate(pages, start=1):
+
+                # Add page
+                canvas.setPageSize((page.BBox[2], page.BBox[3]))
+                canvas.doForm(makerl(canvas, page))
+
+                # Draw footer
+                footer_text = "Página %s de %s" % (page_num, len(pages))
+                x = 75
+                canvas.saveState()
+                    
+                canvas.setFont('Times-Roman', 10)
+                canvas.drawString(page.BBox[2]-x, 20, footer_text)
+                canvas.restoreState()
+
+                canvas.showPage()
+
+            canvas.save()
+        except Exception as ex:
+            print(ex)
+            arcpy.AddMessage(ex.message)
+            
 
