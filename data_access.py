@@ -43,7 +43,7 @@ class Data_Access:
                     arcpy.AddMessage(data_response['error'])
             
                 self.layer_attributes = data_response['features'][0]['attributes']
-
+            
             return {"data_table":data,"attachmentsttachments":self.uniqueIDAttachments}
         except Exception as ex:
             arcpy.AddMessage(ex)
@@ -54,22 +54,31 @@ class Data_Access:
         fields = self.layer_obj['layer']['fields']
         data = []
         self.uniqueIDAttachments = []
+        attributes = data_response['features'][0]['attributes']
         for fd in fields:
+            
             column_name = fd['name']
             column_label = fd['alias']
-            value = data_response['features'][0]['attributes'][column_name]
+            value = attributes[column_name]
             domain_field = self.get_domain_field(column_name)
+            
             if self.is_date(data_response['fields'],column_name,value):
                 value = self.utils.date_format(value)
 
             if len(domain_field) > 0:
                 value = self.__set_domain_value(domain_field,value)
+
             
             data.append([column_label,value])
                         
             if is_attach:
-                self.get_attachmentInfos(self.layer_obj['layer']['url'],data_response['features'][0]['attributes']) 
+                
+                arcpy.AddMessage("DISPLAY FIELD"+str(self.display_field))
+                arcpy.AddMessage("DISPLAY FIELD MAIN"+attributes[self.display_field])
+                self.display_field_value = attributes[self.display_field]
+                self.get_attachmentInfos(self.layer_obj['layer']['url'],attributes) 
 
+        
         return data  
 
     def __build_data_table_relationship(self, data_response, relationship):
@@ -92,20 +101,28 @@ class Data_Access:
                data.append([column_label,value])
                             
             if is_attach:
+             
+                self.display_field_value = feature['attributes'][self.display_field]
                 self.get_attachmentInfos(relationship['url'],feature['attributes'])                        
             data.append('spacer')
         return data
     
     def __set_domain_value(self,domain_field,value):
+        
         if value is None or str(value).strip() is "":
             return ""
-            
+        
         coded_values = domain_field[0]['domain']['codedValues']
-        value_field = [cv for cv in coded_values if cv['code'] == value][0]['name']
+        domain = [cv for cv in coded_values if cv['code'] == value]
 
+        if len(domain) == 0:
+            value_field = value
+        else:
+            value_field = domain[0]['name']
         return value_field
 
     def get_data_relationship(self, relationship):
+        self.load_service_definition(relationship['url'])
         codigo_imovel = self.layer_attributes[relationship['origin']]
         url = self.utils.build_url(relationship,self.token,codigo_imovel)
         response = self.service_request.get(url,None)
@@ -185,7 +202,7 @@ class Data_Access:
                     for chunk in response.read():
                         handle.write(chunk)
         
-            self.uniqueIDAttachments.append(uniqueID)
+            self.uniqueIDAttachments.append({"name":uniqueID,"display_field":self.display_field_value})
 
     def load_service_definition(self, url):
         try:
@@ -194,13 +211,15 @@ class Data_Access:
             if response.status == 200:
                 definition = json.loads(response.read())
                 self.definition_fields = definition['fields']
+                arcpy.AddMessage("DEFINITION "+definition['displayField'])
+                self.display_field = definition['displayField']
             else:
                 arcpy.AddMessage('Error response get service definition')
         except Exception as ex:
             arcpy.AddMessage(ex)
     
     def get_domain_field(self, field_name):
-        fields_domain = [fd for fd in self.definition_fields if fd['domain'] != None and fd['name'] == field_name]
+        fields_domain = [fd for fd in self.definition_fields if 'domain' in fd and fd['domain'] != None and fd['name'] == field_name]
         return fields_domain
 
 

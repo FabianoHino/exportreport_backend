@@ -7,13 +7,13 @@ import io
 import uuid
 import json
 import reportlab
-from reportlab.platypus import SimpleDocTemplate, Image, Table, TableStyle, Spacer, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Image, Table, TableStyle, Spacer, Paragraph, Frame
 from reportlab.lib.pagesizes import letter,A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet, TA_CENTER
 from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
 from reportlab.pdfgen.canvas import Canvas
-
+from functools import partial
 from utils import Utils
 from data_access import Data_Access
 
@@ -33,7 +33,7 @@ class Report:
             self.subtitle = subtitle
             self.report_elements = []
             self.engie_logo = engie_logo
-            self.__build_title_subtitle()
+            #self.__build_title_subtitle()
             layer_json = layer.replace('\\n','')
             #layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
             self.layer_obj = json.loads(layer_json)
@@ -90,7 +90,6 @@ class Report:
         self.report_elements.append(table_principal)
         self.__set_spacer(0.1)
 
-        arcpy.AddMessage(len(data['attachmentsttachments']))
         if len(data['attachmentsttachments']) > 0:
             self.__build_attachments(data['attachmentsttachments'])
 
@@ -138,25 +137,28 @@ class Report:
             arcpy.AddMessage("BUILD ATTACHMENTS")
             data = []
             file_img = []
+            df = []
         
             for uuid in uuids:
-                files_attach = self.data_access.get_attachments_in_folder(uuid)
+                uuid_name = uuid['name']
+                uuid_df = uuid['display_field']
+                files_attach = self.data_access.get_attachments_in_folder(uuid_name)
                 for file in files_attach:
-                    path_img = '{}{}\\{}'.format(arcpy.env.scratchWorkspace,uuid,file)
+                    path_img = '{}{}\\{}'.format(arcpy.env.scratchWorkspace,uuid_name,file)
                     img_attach = Image( path_img)
-                    '''img_attach.width=0.3*inch
-                    img_attach.height=0.3*inch
-                    img_attach.drawWidth=3*inch
-                    img_attach.drawHeight=3*inch'''
                     img_attach._restrictSize(3*inch, 3*inch)
-                    file_img.append(img_attach)  
+                    file_img.append(img_attach)
+                    df.append(uuid_df)
 
                     if len(file_img) == 2:
                         data.append(file_img)
+                        data.append(df)
                         file_img = []
+                        df = []
 
                 if len(file_img) > 0:
-                    data.append(file_img)    
+                    data.append(file_img)
+                    data.append(df)
         
                 if len(data) > 0:
                     self.__set_position_attach(data)
@@ -197,8 +199,15 @@ class Report:
         style = self.__build_style_header()    
         table_header.setStyle(style)
             
-        self.report_elements.append(table_header)
-        self.__set_spacer(0.2)
+        #self.report_elements.append(table_header)
+        #self.__set_spacer(0.2)
+        return [table_header]
+
+    def header(canvas, doc, content):
+        canvas.saveState()
+        w, h = content.wrap(doc.width, doc.topMargin)
+        content.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h)
+        canvas.restoreState()
             
     def __build_style_header(self):
         return TableStyle([
@@ -224,7 +233,9 @@ class Report:
 
     def __set_position_attach(self,data):
         table_img = Table(data, colWidths=[10 * cm])
+        arcpy.AddMessage('finish Create table')
         style = self.__table_style_images()
+        arcpy.AddMessage('STYLE')
         table_img.setStyle(style)
         self.report_elements.append(table_img)
 
@@ -248,7 +259,7 @@ class Report:
             path_report_merged = os.path.join(arcpy.env.scratchWorkspace, 'report_{0}_merged.pdf'.format(uniqueID))
 
             arcpy.AddMessage(path_report)
-            doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=12, bottomMargin=20, allowSplitting=1)
+            doc = SimpleDocTemplate(path_report, pagesize=A4,showBoundary=0, leftMargin=0,rightMargin=0, topMargin=95, bottomMargin=45, allowSplitting=1)
 
             doc.build(self.report_elements)
             arcpy.AddMessage("INIT MERGE")
@@ -286,12 +297,25 @@ class Report:
                 canvas.doForm(makerl(canvas, page))
 
                 # Draw footer
-                footer_text = "Página %s de %s" % (page_num, len(pages))
-                x = 75
+                footer_text_main = "ENGIE BRASIL ENERGIA S.A."
+                footer_text_address = "Rua Paschoal Apóstolo Pítsica, 5064 - 88025-255 - Florianópolis - Santa Catarina - Brasil"
+                footer_text_page = "Página %s de %s" % (page_num, len(pages))
+                x1 = 75
+                x2 = 360
+                x3 = 480
+                
                 canvas.saveState()
-                    
+
+                
+                header_text = self.__build_title_subtitle()
+                f = Frame(inch, inch, 6.26*inch, 10.5*inch)
+                
+                f.addFromList(header_text,canvas)
+                                    
                 canvas.setFont('Times-Roman', 10)
-                canvas.drawString(page.BBox[2]-x, 20, footer_text)
+                canvas.drawString(page.BBox[2]-x2, 40, footer_text_main)
+                canvas.drawString(page.BBox[2]-x3, 20, footer_text_address)
+                canvas.drawString(page.BBox[2]-x1, 20, footer_text_page)
                 canvas.restoreState()
 
                 canvas.showPage()
