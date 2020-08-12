@@ -12,7 +12,8 @@ from utils import Utils
 from os import listdir
 from os.path import isfile, join
 from service_request import Service_Request
-
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet, TA_CENTER
+from reportlab.platypus import Paragraph
 
 class Data_Access:
     def __init__(self,layer):
@@ -44,7 +45,7 @@ class Data_Access:
             
                 self.layer_attributes = data_response['features'][0]['attributes']
             
-            return {"data_table":data,"attachmentsttachments":self.uniqueIDAttachments}
+            return {"data_table":data,"attachments":self.uniqueIDAttachments}
         except Exception as ex:
             arcpy.AddMessage(ex)
     
@@ -68,13 +69,18 @@ class Data_Access:
             if len(domain_field) > 0:
                 value = self.__set_domain_value(domain_field,value)
 
-            
+            arcpy.AddMessage("column_label" + str(value))
+            styles = ParagraphStyle(textColor='WHITE', name='normal')
+            column_label = Paragraph(str(column_label), styles)
+            styles = ParagraphStyle(textColor='BLACK', name='normal')
+            value = Paragraph(str(value) if(value != None) else "", styles)
+
             data.append([column_label,value])
                         
             if is_attach:
                 
                 arcpy.AddMessage("DISPLAY FIELD"+str(self.display_field))
-                arcpy.AddMessage("DISPLAY FIELD MAIN"+attributes[self.display_field])
+                arcpy.AddMessage("DISPLAY FIELD MAIN"+str(attributes[self.display_field]))
                 self.display_field_value = attributes[self.display_field]
                 self.get_attachmentInfos(self.layer_obj['layer']['url'],attributes) 
 
@@ -122,6 +128,7 @@ class Data_Access:
         return value_field
 
     def get_data_relationship(self, relationship):
+        self.uniqueIDAttachments = []
         self.load_service_definition(relationship['url'])
         codigo_imovel = self.layer_attributes[relationship['origin']]
         url = self.utils.build_url(relationship,self.token,codigo_imovel)

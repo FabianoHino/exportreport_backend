@@ -10,11 +10,11 @@ class Main:
     deplibs = "libs/"
     reportFile = "report.py"
     service_request = "service_request.py"
-    engie_logo = "engie_logo.png"
+    engie_logo = os.path.join(os.path.dirname(os.path.realpath(__file__)), "engie_logo.png")
     data_access = "data_access.py"
     utils = "utils.py"
     init = "__init__.py"
-    template = "A4Portrait.mxd"
+    template = os.path.join(os.path.dirname(os.path.realpath(__file__)), "A4Portrait.mxd")
     
     webmap_as_json = arcpy.GetParameterAsText(0)
     layer = arcpy.GetParameterAsText(1)

@@ -38,9 +38,11 @@ class Report:
             #layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
             self.layer_obj = json.loads(layer_json)
             self.templateMXD = templateMXD
-            
+            arcpy.AddMessage('self.templateMXD')
+            arcpy.AddMessage(self.templateMXD)
             self.utils = Utils()
             self.data_access = Data_Access(self.layer_obj)
+            arcpy.AddMessage(self.data_access)
             self.web_map_as_json = web_map_as_json.replace('\\n','')
             self.web_map_as_pdf = ""
 
@@ -90,8 +92,8 @@ class Report:
         self.report_elements.append(table_principal)
         self.__set_spacer(0.1)
 
-        if len(data['attachmentsttachments']) > 0:
-            self.__build_attachments(data['attachmentsttachments'])
+        if len(data['attachments']) > 0:
+            self.__build_attachments(data['attachments'])
 
     def __build_title_table(self, title):
         table_title = Table([[title]],colWidths=[20 * cm])
@@ -185,6 +187,7 @@ class Report:
             ('ALIGN',(0,0),(-1,-1),'LEFT'),
             ('FONTSIZE', (0,0), (-1,0), 10),
             ('LINEABOVE', (0,0), (-1,-1), 0.25, colors.white),
+            ('VALIGN',(-1,-1),(-1,-1),'MIDDLE')
             # ('BOTTOMPADDING', (0,0), (-1,0), 12)
         ])
 
@@ -312,10 +315,10 @@ class Report:
                 
                 f.addFromList(header_text,canvas)
                                     
-                canvas.setFont('Times-Roman', 10)
-                canvas.drawString(page.BBox[2]-x2, 40, footer_text_main)
-                canvas.drawString(page.BBox[2]-x3, 20, footer_text_address)
-                canvas.drawString(page.BBox[2]-x1, 20, footer_text_page)
+                canvas.setFont('Times-Roman', 8)
+                canvas.drawString(page.BBox[2]-x2, 30, footer_text_main)
+                canvas.drawString(page.BBox[2]-x3, 15, footer_text_address)
+                canvas.drawString(page.BBox[2]-x1, 15, footer_text_page)
                 canvas.restoreState()
 
                 canvas.showPage()
