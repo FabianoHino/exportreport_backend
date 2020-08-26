@@ -25,7 +25,7 @@ from pdfrw.buildxobj import pagexobj
 class Report:
 
         
-    def __init__(self,web_map_as_json,layer, title, subtitle, templateMXD, engie_logo):
+    def __init__(self,web_map_as_json,layer, title, subtitle, templateMXD, engie_logo, baseMaps):
         try:
             
             arcpy.AddMessage("INIT REPORT")
@@ -33,6 +33,7 @@ class Report:
             self.subtitle = subtitle
             self.report_elements = []
             self.engie_logo = engie_logo
+            self.baseMaps = baseMaps
             #self.__build_title_subtitle()
             layer_json = layer.replace('\\n','')
             #layer_json = str(''.join(layer.replace('\\n','')).encode('utf-8'))
@@ -68,7 +69,21 @@ class Report:
 
         result = arcpy.mapping.ConvertWebMapToMapDocument(self.web_map_as_json, template_mxd)
         mxd = result.mapDocument
-        df = arcpy.mapping.ListDataFrames(mxd, 'Webmap')[0]
+        
+
+        if(self.baseMaps != "basemaps/"):
+            df = arcpy.mapping.ListDataFrames(mxd, 'Webmap')[0]
+            layerFiles = self.getBaseMapLayers()
+            
+            for layerFile in reversed(layerFiles):
+                arcpy.AddMessage("-------------------")
+                arcpy.AddMessage(self.baseMaps)
+                arcpy.AddMessage(layerFile)
+                addLayer = arcpy.mapping.Layer(os.path.join(self.baseMaps, layerFile))
+                arcpy.mapping.AddLayer(df, addLayer, "BOTTOM")
+
+        
+            mxd.saveACopy(os.path.join(path_webmap_img, 'teste.mxd'))
 
         output = 'webmap_{}.pdf'.format(str(uuid.uuid1()))
 
@@ -76,6 +91,12 @@ class Report:
         arcpy.mapping.ExportToPDF(mxd, self.web_map_as_pdf, df_export_width = 400,df_export_height =680, resolution = 150)
 
         del mxd
+
+    def getBaseMapLayers(self):
+        return json.loads(self.web_map_as_json)["basemaps"]
+        
+
+
 
     def __build_table(self):
         arcpy.AddMessage("BUILD TABLE")
@@ -85,11 +106,12 @@ class Report:
         arcpy.AddMessage("data_table")
         title_table = self.layer_obj['layer']['title']
         self.__build_title_table(title_table)
-        table_principal = Table(data_table,colWidths=[8 * cm, 12 * cm])
-        style = self.__table_style(len(data_table))
-        table_principal.setStyle(style)
+        if(len(data_table) >0):
+            table_principal = Table(data_table,colWidths=[8 * cm, 12 * cm])
+            style = self.__table_style(len(data_table))
+            table_principal.setStyle(style)
 
-        self.report_elements.append(table_principal)
+            self.report_elements.append(table_principal)
         self.__set_spacer(0.1)
 
         if len(data['attachments']) > 0:
@@ -129,10 +151,11 @@ class Report:
                 self.__build_attachments(data['attachments'])
     
     def __create_table_rel(self,data):
-        table_rel = Table(data, colWidths=[8 * cm, 12 * cm])
-        style = self.__table_style(len(data))    
-        table_rel.setStyle(style)
-        self.report_elements.append(table_rel)
+        if(len(data) >0):
+            table_rel = Table(data, colWidths=[8 * cm, 12 * cm])
+            style = self.__table_style(len(data))    
+            table_rel.setStyle(style)
+            self.report_elements.append(table_rel)
         
     def __build_attachments(self,uuids):
         try:
